@@ -1,4 +1,4 @@
-from .misc import one_hot
+from uclasm.utils.misc import one_hot
 import numpy as np
 
 def get_node_cover(graph):

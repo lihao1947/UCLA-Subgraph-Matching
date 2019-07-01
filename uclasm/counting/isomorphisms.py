@@ -1,7 +1,7 @@
-from ..filters import run_filters, cheap_filters, all_filters
-from ..utils.misc import invert, values_map_to_same_key, one_hot
-from ..utils.graph_ops import get_node_cover
-from .alldiffs import count_alldiffs
+from uclasm.filters import run_filters, cheap_filters, all_filters
+from uclasm.utils.misc import invert, values_map_to_same_key, one_hot
+from uclasm.utils.graph_ops import get_node_cover
+from uclasm.counting.alldiffs import count_alldiffs
 import numpy as np
 from functools import reduce
 
