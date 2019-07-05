@@ -2,12 +2,12 @@
 Filtering algorithms expect data to come in the form of Graph objects
 """
 
-from .misc import index_map
+from uclasm.utils.misc import index_map
 import scipy.sparse as sparse
 import numpy as np
 
 class Graph:
-    def __init__(self, nodes, channels, adjs, labels=None):
+    def __init__(self, nodes, channels, adjs, labels=None, name=None):
         self.nodes = np.array(nodes)
         self.n_nodes = len(nodes)
         self.node_idxs = index_map(self.nodes)
@@ -21,6 +21,7 @@ class Graph:
         self._composite_adj = None
         self._sym_composite_adj = None
         self._is_nbr = None
+        self.name = name
 
     @property
     def composite_adj(self):
@@ -80,3 +81,108 @@ class Graph:
         return Graph(self.nodes, self.channels,
                      [adj.copy() for adj in self.adjs],
                      labels=self.labels)
+
+    def get_n_edges(self):
+        """
+        Returns a dictionary mapping channels to the number of edges 
+        in that channel.
+        """
+        edge_counts = {}
+        for channel in self.channels:
+            adj_mat = self.ch_to_adj[channel]
+
+            count = 0
+            for i, j in zip(*adj_mat.nonzero()):
+                count += adj_mat[i,j]
+            edge_counts[channel] = count
+
+        return edge_counts
+
+    def edge_iterator(self):
+        """
+        This will iterate over all the edges in the graph in no particular
+        order except it will list them channel by channel.
+
+        It will yield a 4-tuple listing in order the channel, start node index,
+        end node index, and the edge count.
+        """
+        for channel in self.channels:
+            adj_mat = self.ch_to_adj[channel]
+
+            for i, j in zip(*adj_mat.nonzero()):
+                edge_count = adj_mat[i,j]
+                yield channel, i, j, edge_count
+
+    def add_edge(self, channel, node_1, node_2, count=1):
+        """
+        Add an edge to the channel specified going from node_1 to node_2.
+        count is the number of edges to add.
+        """
+        self.ch_to_adj[channel][node_1,node_2] += count
+
+    def remove_edge(self, channel, node_1, node_2, count=1):
+        """
+        Remove an edge from channel specified going from node_1 to node_2.
+        count is the number of edges to remove.
+        """
+        if count > self.ch_to_adj[channel][node_1,node_2]:
+            raise ValueError("Specified count to remove is larger than number of edges")
+        self.ch_to_adj[channel][node_1,node_2] -= count
+
+    def write_channel_solnon(self, filename, channel):
+        """
+        Write out adjacency matrix for specific channel as adjacency list to a file.
+        """
+        with open(filename, 'w') as f:
+            f.write(str(self.n_nodes) + '\n')
+
+            adj_mat = self.ch_to_adj[channel]
+            curr_index = 0
+            curr_adj = []
+            for (node_index, adjacent_index) in zip(*adj_mat.nonzero()):
+                if node_index != curr_index:
+                    # We write out number of adjacent nodes, then list of adjacent nodes
+                    f.write(" ".join(map(str, [len(curr_adj)] + curr_adj)) + '\n')
+
+                    for i in range(curr_index+1, node_index):
+                        # For each index in between, these have no adjacent nodes
+                        # So we write zero for each of these nodes
+                        f.write("0\n")
+
+                    curr_adj = []
+                    curr_index = node_index
+
+                curr_adj.append(adjacent_index)
+
+            # Write out remaining nodes
+            f.write(" ".join(map(str, [len(curr_adj)] + curr_adj)) + '\n')
+
+            for i in range(curr_index+1, self.n_nodes):
+                f.write('0\n')
+
+    def write_file_solnon(self, filename):
+        """
+        Writes out the graph in solnon format. This format is described as follows:
+        Each graph is described in a text file. If the graph has n vertices, then the file has n+1 lines: 
+        -The first line gives the number n of vertices.
+        -The next n lines give, for each vertex, its number of successor nodes, 
+         followed by the list of its successor nodes.
+
+        If there are multiple channels, then it will create one file for each channel.
+        """
+
+        if len(list(self.channels)) > 1:
+            def add_channel_to_name(filename, channel):
+                *name, ext = filename.split('.')
+                name = '.'.join(name)
+                new_name = name + '_' + str(channel) + '.' + ext
+                return new_name
+
+            filenames = [add_channel_to_name(filename, channel) for channel in self.channels]
+
+            for name, channel in zip(filenames, self.channels):
+                self.write_channel_solnon(name, channel)
+        else:
+            # Extract sole channel
+            channel = list(self.channels)[0]
+            self.write_channel_solnon(filename, channel)
