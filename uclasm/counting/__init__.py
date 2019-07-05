@@ -1,1 +1,1 @@
-from .isomorphisms import count_isomorphisms
+from uclasm.counting.isomorphisms import count_isomorphisms

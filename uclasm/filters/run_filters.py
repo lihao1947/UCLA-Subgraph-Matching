@@ -1,9 +1,9 @@
 import copy
 import time
 import numpy as np
-from . import label_filter
-from . import permutation_filter
-from ..utils import summarize
+from uclasm.filters.label_filter import label_filter
+from uclasm.filters.permutation_filter import permutation_filter
+from uclasm.utils import summarize
 
 # TODO: logging
 

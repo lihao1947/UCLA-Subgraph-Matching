@@ -1,3 +1,3 @@
-from .utils import *
-from .filters import *
-from .counting import *
+from uclasm.utils import *
+from uclasm.filters import *
+from uclasm.counting import *

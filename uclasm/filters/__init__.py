@@ -1,9 +1,9 @@
-from .label_filter import label_filter
-from .stats_filter import stats_filter
-from .topology_filter import topology_filter
-from .neighborhood_filter import neighborhood_filter
-from .permutation_filter import permutation_filter
-from .run_filters import run_filters
+from uclasm.filters.label_filter import label_filter
+from uclasm.filters.stats_filter import stats_filter
+from uclasm.filters.topology_filter import topology_filter
+from uclasm.filters.neighborhood_filter import neighborhood_filter
+from uclasm.filters.permutation_filter import permutation_filter
+from uclasm.filters.run_filters import run_filters
 
 # These are the most commonly used filters
 cheap_filters = [stats_filter, topology_filter]
