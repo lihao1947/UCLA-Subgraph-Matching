@@ -5,6 +5,7 @@ Filtering algorithms expect data to come in the form of Graph objects
 from uclasm.utils.misc import index_map
 import scipy.sparse as sparse
 import numpy as np
+import networkx as nx
 
 class Graph:
     def __init__(self, nodes, channels, adjs, labels=None, name=None):
@@ -186,3 +187,15 @@ class Graph:
             # Extract sole channel
             channel = list(self.channels)[0]
             self.write_channel_solnon(filename, channel)
+
+    def channel_to_networkx_graph(self, channel):
+        """
+        Convert the given channel into a networkx MultiDiGraph.
+        """
+        return nx.MultiDiGraph(self.ch_to_adj[channel])
+
+    def to_networkx_graph(self):
+        """
+        Return a dictionary mapping channels to networkx MultiDiGraphs.
+        """
+        return {channel: self.channel_to_networkx_graph(channel) for channel in self.channels}
