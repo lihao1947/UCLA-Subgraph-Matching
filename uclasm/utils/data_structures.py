@@ -199,3 +199,21 @@ class Graph:
         Return a dictionary mapping channels to networkx MultiDiGraphs.
         """
         return {channel: self.channel_to_networkx_graph(channel) for channel in self.channels}
+
+    def isolated_nodes(self):
+        """
+        Return the isolated nodes in the graph. 
+
+        Returns (set): The set of isolated nodes
+        """
+        # We construct sets of nodes with 0 in degree and 0 out degree for each channel
+        # Then we intersect them all
+        sets = []
+        for channel in self.channels:
+            adj_mat = self.ch_to_adj[channel]
+            outdegree = adj_mat.sum(axis=1).A
+            indegree = adj_mat.sum(axis=0).A
+            zero_out = set(np.where(outdegree == 0)[0])
+            zero_in = set(np.where(indegree = 0)[0])
+            sets.append(zero_out & zero_in)
+        return sets[0].intersection(sets[1:])
