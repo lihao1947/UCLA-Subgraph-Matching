@@ -123,3 +123,29 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+uclasm/.___init__.py
+uclasm/filters/.___init__.py
+uclasm/counting/._isomorphisms.py
+uclasm/counting/._alldiffs.py
+uclasm/filters/._topology_filter.py
+uclasm/filters/._stats_filter.py
+uclasm/filters/._run_filters.py
+uclasm/filters/._permutation_filter.py
+uclasm/filters/._elimination_filter.py
+uclasm/noisy_counting/.___init__.py
+uclasm/noisy_counting/._best_matching.py
+uclasm/noisy_filters/._run_noisy_filters.py
+uclasm/noisy_filters/._noisy_topology_filter_test.py
+uclasm/noisy_filters/._noisy_topology_filter.py
+uclasm/noisy_filters/._noisy_stats_filter_test.py
+uclasm/noisy_filters/._noisy_stats_filter.py
+uclasm/noisy_filters/.___init__.py
+uclasm/noisy_filters/Xie/._topology_filter_noisy.py
+uclasm/noisy_filters/Xie/._stats_filter_noisy.py
+uclasm/noisy_filters/Xie/.___init__.py
+uclasm/utils/.___init__.py
+uclasm/utils/._data_loaders.py
+uclasm/utils/._data_structures.py
+uclasm/utils/._graph_ops.py
+uclasm/utils/._misc.py
+uclasm/utils/._summarize.py
