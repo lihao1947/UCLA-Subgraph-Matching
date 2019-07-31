@@ -7,6 +7,8 @@ from heapq import heappush, heappop
 import uclasm
 import pickle
 from .. import INF1
+import os.path
+from os import path
 
 # TODO: count how many isomorphisms each background node participates in.
 # TODO: switch from recursive to iterative implementation for readability
@@ -85,15 +87,17 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1,num_isomorphis
         try_node_candidates = None
         zero_remain=[]
         for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
-            zeros = len(world.nodes) - np.count_nonzero(candidates_1[tmplt_node_idx])
+            if current_state.state[tmplt_node_idx]>=0:
+                continue
+            zeros = len(world.nodes) - np.count_nonzero(current_candidates[tmplt_node_idx])
             if zeros == 1:
                 try_node_candidates = current_candidates[tmplt_node_idx]
                 try_node = tmplt_node_idx
                 continue
-            zero_remain.append(zeros)
-        
+            zero_remain.append((tmplt_node_idx, zeros))
+
         if try_node_candidates is None:
-            val, idx = min((val, idx) for (idx, val) in enumerate(zero_remain))
+            val, idx = min((val, idx) for (idx, val) in zero_remain)
             try_node_candidates = current_candidates[idx]
             try_node = idx
 
@@ -168,7 +172,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1,num_isomorphis
 #     return n_isomorphisms
 
 
-def best_matching(tmplt, world, *, candidates=None, verbose=True):
+def best_matching(tmplt, world, *, candidates=None, verbose=True, cache=None):
     """
     counts the number of ways to assign template nodes to world nodes such that
     edges between template nodes also appear between the corresponding world
@@ -182,7 +186,14 @@ def best_matching(tmplt, world, *, candidates=None, verbose=True):
     # if candidates is None:
     #     tmplt, world, candidates = uclasm.run_noisy_filters(
     #         tmplt, world, noisy_filters=uclasm.all_noisy_filters, verbose=True)
-    tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world)
+    if cache==None:
+        tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world)
+    else:
+        if path.exists(cache):
+            tmplt, world, candidates_0, candidates_1 = pickle.load(open(cache,'rb'))
+        else:
+            tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world)
+            pickle.dump((tmplt, world, candidates_0, candidates_1), open(cache,'wb'))
     #candidates = np.max(candidates_0, candidates_1)
 
     #unspec_nodes = np.where(candidates.sum(axis=1) > 1)[0]
