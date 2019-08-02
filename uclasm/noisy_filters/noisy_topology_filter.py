@@ -37,7 +37,8 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
         # threshold of missing_edges
         src_is_cand = candidates_0[src_idx]<=cand_upper_bound
         dst_is_cand = candidates_0[dst_idx]<=cand_upper_bound
-
+        if np.sum(src_is_cand)<=0 or np.sum(dst_is_cand)<=0:
+            continue
         # figure out which candidates have enough edges between them in world
         missing_edges = None
         missing_scalar = 0
