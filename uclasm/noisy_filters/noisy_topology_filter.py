@@ -1,6 +1,7 @@
 import numpy as np
 from functools import reduce
 from operator import mul
+from scipy.sparse import csr_matrix
 
 # TODO: parallelize?
 # TODO: get set of values taken by tmplt edges?
@@ -12,7 +13,7 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj, world_adj)
         yield (tmplt_adj.T, world_adj.T)
 
-def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, changed_cands=None):
+def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, changed_cands=None, cand_upper_bound=4):
     """
     For each pair of neighbors in the template, ensure that any candidate for
     one neighbor has a corresponding candidate for the other neighbor to which
@@ -34,8 +35,8 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
 
         # get indicators of candidate nodes in the world adjacency matrices
         # threshold of missing_edges
-        src_is_cand = candidates_0[src_idx]<=4
-        dst_is_cand = candidates_0[dst_idx]<=4
+        src_is_cand = candidates_0[src_idx]<=cand_upper_bound
+        dst_is_cand = candidates_0[dst_idx]<=cand_upper_bound
 
         # figure out which candidates have enough edges between them in world
         missing_edges = None
@@ -65,6 +66,19 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
         # srcs with at least one reasonable dst
         # src_matches = enough_edges.getnnz(axis=1) > 0
         candidates[src_idx][src_is_cand] += sign * (np.maximum(-missing_edges.A,candidates_0[dst_idx][dst_is_cand]-missing_scalar).min(axis=1)+missing_scalar)
+        # cand_dst = csr_matrix(candidates_0[dst_idx][dst_is_cand]-missing_scalar)
+        # missing_edges = -missing_edges
+        # missing_edges = missing_edges.tocsr()
+        # src_cand_place = np.argwhere(src_is_cand)
+        # for i in range(missing_edges.shape[0]):
+        #     missing_edges_row_i = missing_edges.getrow(i)
+        #     place = missing_edges_row_i<0
+        #     if place.sum()==0:
+        #         candidates[src_idx][src_cand_place[i]] += sign*(missing_scalar)
+        #     else:
+        #         tmp1 = missing_edges_row_i[place]
+        #         tmp2 = cand_dst[place]
+        #         candidates[src_idx][src_cand_place[i]] += sign*(np.min(np.maximum(tmp1,tmp2).min(),0)+missing_scalar)
         # if not any(src_matches):
         #     candidates[:,:] = False
         #     break
@@ -72,8 +86,18 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
         if src_idx != dst_idx:
             # dsts with at least one reasonable src
             # dst_matches = enough_edges.getnnz(axis=0) > 0
-            candidates[dst_idx][dst_is_cand] += sign * (np.maximum(-missing_edges.
-            A, candidates_0[src_idx][src_is_cand].reshape(-1,1)-missing_scalar).min(axis=0)+missing_scalar)
+            candidates[dst_idx][dst_is_cand] += sign * (np.maximum(-missing_edges.A, candidates_0[src_idx][src_is_cand].reshape(-1,1)-missing_scalar).min(axis=0)+missing_scalar)
+            # cand_src = csr_matrix(candidates_0[src_idx][src_is_cand]-missing_scalar).T
+            # #missing_edges = -missing_edges
+            # missing_edges = missing_edges.tocsc()
+            # dst_cand_place = np.argwhere(dst_is_cand)
+            # for i in range(missing_edges.shape[1]):
+            #     missing_edges_col_i = missing_edges.getcol(i)
+            #     place = missing_edges_col_i<0
+            #     if place.sum()==0:
+            #         candidates[dst_idx][dst_cand_place[i]] += sign*(missing_scalar)
+            #     else:
+            #         candidates[dst_idx][dst_cand_place[i]] += sign*(np.min(np.maximum(missing_edges_col_i[place],cand_src[place]).min(),0)+missing_scalar)
             #sign * missing_edges.maximum( candidates_0[dst_is_cand].reshape(-1,1)).min(axis=1)
             # if not any(dst_matches):
             #     candidates[:,:] = False
@@ -83,7 +107,7 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
 
     return tmplt, world, candidates
 
-def noisy_topology_filter(tmplt, world, candidates_0, candidates_0_old=None, candidates_old=None, changed_cands=None):
+def noisy_topology_filter(tmplt, world, candidates_0, candidates_0_old=None, candidates_old=None, changed_cands=None, cand_upper_bound=4):
     """
     For each pair of neighbors in the template, ensure that any candidate for
     one neighbor has a corresponding candidate for the other neighbor to which
@@ -93,10 +117,10 @@ def noisy_topology_filter(tmplt, world, candidates_0, candidates_0_old=None, can
                    candidates that have changed since last time this ran
     """
     if candidates_old is None or candidates_old is None or changed_cands is None:
-        return _noisy_topology_filter(tmplt, world, candidates_0, np.zeros((tmplt.n_nodes, world.n_nodes), dtype=np.int64))
+        return _noisy_topology_filter(tmplt, world, candidates_0, np.zeros((tmplt.n_nodes, world.n_nodes), dtype=np.int64),cand_upper_bound=cand_upper_bound)
 
-    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0_old, candidates_old, sign=-1, changed_cands = changed_cands)
+    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0_old, candidates_old, sign=-1, changed_cands = changed_cands, cand_upper_bound=cand_upper_bound)
 
-    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, changed_cands = changed_cands)
+    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, changed_cands = changed_cands, cand_upper_bound=cand_upper_bound)
 
     return tmplt, world, candidates

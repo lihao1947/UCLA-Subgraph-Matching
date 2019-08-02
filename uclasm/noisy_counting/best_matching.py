@@ -42,7 +42,7 @@ class State():
     def __lt__(self, other):
         return (self.f < other.f) or ((self.f == other.f) and (self.n_determined>other.n_determined))
 
-def A_star_best_matching(tmplt, world, candidates_0, candidates_1,num_isomorphism=10,width_constraint=1):
+def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphism=1, cand_upper_bound=0):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
     solution = []
@@ -76,7 +76,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1,num_isomorphis
         # Found the goal
         if current_state.is_end():
             solution.append(current_state)
-            if len(solution)>num_isomorphism:
+            if len(solution)>=num_isomorphism:
                 return solution
             continue
 
@@ -89,11 +89,11 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1,num_isomorphis
         for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
             if current_state.state[tmplt_node_idx]>=0:
                 continue
-            zeros = len(world.nodes) - np.count_nonzero(current_candidates[tmplt_node_idx])
+            zeros = np.sum(current_candidates[tmplt_node_idx]<=cand_upper_bound)
             if zeros == 1:
                 try_node_candidates = current_candidates[tmplt_node_idx]
                 try_node = tmplt_node_idx
-                continue
+                break
             zero_remain.append((tmplt_node_idx, zeros))
 
         if try_node_candidates is None:
@@ -103,7 +103,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1,num_isomorphis
 
         for world_node_ind in np.argsort(try_node_candidates):
             # need more consideration
-            if try_node_candidates[world_node_ind]>width_constraint:
+            if try_node_candidates[world_node_ind]>cand_upper_bound:
                 break
 
             new_state = current_state.copy()
@@ -129,7 +129,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1,num_isomorphis
             new_state.candidates_0[:,world_node_ind] = INF1
             new_state.candidates_0[try_node] = (1-one_hot(world_node_ind, world.n_nodes))*INF1
 
-            new_state.candidates_1 = noisy_topology_filter(tmplt, world, new_state.candidates_0, candidates_0_old=candidates_0_old, candidates_old=new_state.candidates_1, changed_cands=one_hot(try_node, tmplt.n_nodes))[2]
+            new_state.candidates_1 = noisy_topology_filter(tmplt, world, new_state.candidates_0, candidates_0_old=candidates_0_old, candidates_old=new_state.candidates_1, changed_cands=one_hot(try_node, tmplt.n_nodes),cand_upper_bound=cand_upper_bound)[2]
 
             # Add the child to the open list
             heappush(open_list, new_state)
@@ -172,7 +172,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1,num_isomorphis
 #     return n_isomorphisms
 
 
-def best_matching(tmplt, world, *, candidates=None, verbose=True, cache=None):
+def best_matching(tmplt, world, *, candidates=None, verbose=True, cand_upper_bound=0, cache=None):
     """
     counts the number of ways to assign template nodes to world nodes such that
     edges between template nodes also appear between the corresponding world
@@ -202,4 +202,4 @@ def best_matching(tmplt, world, *, candidates=None, verbose=True, cache=None):
 
     # Send zeros to init_changed_cands since we already just ran the noisy_filters
     return A_star_best_matching(
-        tmplt, world, candidates_0, candidates_1, width_constraint=0)
+        tmplt, world, candidates_0, candidates_1, cand_upper_bound=cand_upper_bound)
