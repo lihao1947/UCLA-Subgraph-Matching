@@ -5,6 +5,7 @@ Created on Thu Aug  1 14:36:46 2019
 
 @author: yanghuiwang
 """
+    
 
 def get_noisy(ori_graph,percentage=0.05,verbose=False):
     random.seed(1)
@@ -31,15 +32,13 @@ def get_noisy(ori_graph,percentage=0.05,verbose=False):
                 continue
             #try:
             np.random.shuffle(j_list)
-            for j in j_list: # parametrize this number??
-                if adj[i,j]==0:
-                    continue
-                adj[i,j]=adj[i,j]-1
-                miss_edge+=1
-                if(miss_edge>threshold):
+            for j in j_list:
+                if adj[i,j]>=1:
+                    adj[i,j]=adj[i,j]-1
+                    miss_edge+=1
                     break
             if(miss_edge>threshold):
-                    break
+                break
         missing_edges[channel]=miss_edge
         print("miss_edge",miss_edge,"missing_edges",missing_edges)
         graph.ch_to_adj[channel]=adj
