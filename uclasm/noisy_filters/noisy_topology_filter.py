@@ -1,7 +1,7 @@
 import numpy as np
 from functools import reduce
 from operator import mul
-from scipy.sparse import csr_matrix, lil_matrix
+from scipy.sparse import csr_matrix
 
 # TODO: parallelize?
 # TODO: get set of values taken by tmplt edges?
@@ -35,8 +35,8 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
 
         # get indicators of candidate nodes in the world adjacency matrices
         # threshold of missing_edges
-        src_is_cand = candidates_0[src_idx]<0
-        dst_is_cand = candidates_0[dst_idx]<0
+        src_is_cand = candidates_0[src_idx]<=cand_upper_bound
+        dst_is_cand = candidates_0[dst_idx]<=cand_upper_bound
         if np.sum(src_is_cand)<=0 or np.sum(dst_is_cand)<=0:
             continue
         # figure out which candidates have enough edges between them in world
@@ -66,7 +66,7 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
 
         # srcs with at least one reasonable dst
         # src_matches = enough_edges.getnnz(axis=1) > 0
-        candidates[src_idx][src_is_cand] += sign * (np.maximum(-missing_edges.A,candidates_0[dst_idx][dst_is_cand]+cand_upper_bound+1-missing_scalar).min(axis=1)+missing_scalar)
+        candidates[src_idx][src_is_cand] += sign * (np.maximum(-missing_edges.A,candidates_0[dst_idx][dst_is_cand]-missing_scalar).min(axis=1)+missing_scalar)
         # cand_dst = csr_matrix(candidates_0[dst_idx][dst_is_cand]-missing_scalar)
         # missing_edges = -missing_edges
         # missing_edges = missing_edges.tocsr()
@@ -87,7 +87,7 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
         if src_idx != dst_idx:
             # dsts with at least one reasonable src
             # dst_matches = enough_edges.getnnz(axis=0) > 0
-            candidates[dst_idx][dst_is_cand] += sign * (np.maximum(-missing_edges.A, candidates_0[src_idx][src_is_cand].reshape(-1,1)+cand_upper_bound+1-missing_scalar).min(axis=0)+missing_scalar)
+            candidates[dst_idx][dst_is_cand] += sign * (np.maximum(-missing_edges.A, candidates_0[src_idx][src_is_cand].reshape(-1,1)-missing_scalar).min(axis=0)+missing_scalar)
             # cand_src = csr_matrix(candidates_0[src_idx][src_is_cand]-missing_scalar).T
             # #missing_edges = -missing_edges
             # missing_edges = missing_edges.tocsc()
@@ -105,8 +105,8 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
             #     break
 
     #candidates = np.maximum(candidates, candidates_0)
-    candidates = np.minimum(candidates,0)
-    return tmplt, world, lil_matrix(candidates)
+
+    return tmplt, world, candidates
 
 def noisy_topology_filter(tmplt, world, candidates_0, candidates_0_old=None, candidates_old=None, changed_cands=None, cand_upper_bound=4):
     """
@@ -118,10 +118,10 @@ def noisy_topology_filter(tmplt, world, candidates_0, candidates_0_old=None, can
                    candidates that have changed since last time this ran
     """
     if candidates_old is None or candidates_old is None or changed_cands is None:
-        return _noisy_topology_filter(tmplt, world, candidates_0.A, np.zeros((tmplt.n_nodes, world.n_nodes), dtype=np.int64)-cand_upper_bound-1,cand_upper_bound=cand_upper_bound)
+        return _noisy_topology_filter(tmplt, world, candidates_0, np.zeros((tmplt.n_nodes, world.n_nodes), dtype=np.int64),cand_upper_bound=cand_upper_bound)
 
-    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0_old.A, candidates_old.A, sign=-1, changed_cands = changed_cands, cand_upper_bound=cand_upper_bound)
+    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0_old, candidates_old, sign=-1, changed_cands = changed_cands, cand_upper_bound=cand_upper_bound)
 
-    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0.A, candidates.A, sign=1, changed_cands = changed_cands, cand_upper_bound=cand_upper_bound)
+    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, changed_cands = changed_cands, cand_upper_bound=cand_upper_bound)
 
     return tmplt, world, candidates

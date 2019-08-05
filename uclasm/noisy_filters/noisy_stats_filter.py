@@ -1,6 +1,5 @@
 import numpy as np
 import time
-from scipy.sparse import csr_matrix, lil_matrix
 
 # TODO: can we use changed_cands?
 # (Hui) TODO: implement self edge later
@@ -51,7 +50,7 @@ class _cache():
     world = None
     world_feats = None
 
-def noisy_stats_filter(tmplt, world, verbose = False, cand_upper_bound=4):
+def noisy_stats_filter(tmplt, world, verbose = False):
     global _cache
 
     if tmplt == _cache.tmplt:
@@ -73,6 +72,6 @@ def noisy_stats_filter(tmplt, world, verbose = False, cand_upper_bound=4):
     for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
         tmplt_node_feats = tmplt_feats[:, [tmplt_node_idx]]
         edge_missing = np.sum(np.maximum(np.int64(tmplt_node_feats) - np.int64(world_feats), 0), axis=0)
-        candidates[tmplt_node_idx] = np.minimum(edge_missing-cand_upper_bound-1,0)
+        candidates[tmplt_node_idx] = edge_missing
 
-    return tmplt, world, lil_matrix(candidates)
+    return tmplt, world, candidates
