@@ -10,16 +10,18 @@ def iter_adj_pairs(tmplt, world):
 
 def count_missing_edges(tmplt, world, signal):
     miss = 0
-    correspond = {}
-
-    for idx in len(tmplt.nodes):
-        correspond[tmplt.nodes[idx]] = signal[idx]
+    miss_dict = {}
     
+    correspond = dict(zip(tmplt.nodes, signal))
+    
+ 
     for src_idx, dst_idx in tmplt.nbr_idx_pairs:
         
-        src_is_cand = correspond[src_idx]
-        dst_is_cand = correspond[dst_idx]
-
+        src_is_cand = correspond[tmplt.nodes[src_idx]]
+        dst_is_cand = correspond[tmplt.nodes[dst_idx]]
+    
+        
+        
         enough_edges = None
         for tmplt_adj, world_adj in iter_adj_pairs(tmplt, world):
             tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
@@ -33,9 +35,13 @@ def count_missing_edges(tmplt, world, signal):
             missing_edge = world_adj_val - tmplt_adj_val 
             
             if missing_edge >= 0 :
-                continue
+                miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = ''
             else:
-                miss = miss + missing_edge
-                
+                miss = miss - missing_edge
+                miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = str(missing_edge)
+            
+    
+
+    miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])]= "6"
     print ("Signal miss", miss, "edges")
-    return miss
+    return miss, miss_dict
