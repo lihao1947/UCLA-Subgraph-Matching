@@ -42,7 +42,7 @@ class State():
     def __lt__(self, other):
         return (self.f < other.f) or ((self.f == other.f) and (self.n_determined>other.n_determined))
 
-def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphism=1, cand_upper_bound=0):
+def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphism=10, cand_upper_bound=0):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
     solution = []
@@ -80,7 +80,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
                 return solution
             continue
 
-        current_candidates = np.maximum(current_state.candidates_0, current_state.candidates_1)
+        current_candidates = current_state.candidates_0.maximum(current_state.candidates_1)
 
        # Choose the node with least number of zeors, i.e. most possible exact matches, then continue.
        # If there is only one exact match, then just go ahead and use this one.
@@ -89,7 +89,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
         for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
             if current_state.state[tmplt_node_idx]>=0:
                 continue
-            zeros = np.sum(current_candidates[tmplt_node_idx]<=cand_upper_bound)
+            zeros = np.sum(current_candidates[tmplt_node_idx]<0)
             if zeros == 1:
                 try_node_candidates = current_candidates[tmplt_node_idx]
                 try_node = tmplt_node_idx
@@ -101,15 +101,17 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             try_node_candidates = current_candidates[idx]
             try_node = idx
 
+        try_node_candidates = np.squeeze(try_node_candidates.A)
+
         for world_node_ind in np.argsort(try_node_candidates):
             # need more consideration
-            if try_node_candidates[world_node_ind]>cand_upper_bound:
+            if try_node_candidates[world_node_ind]>=0:
                 break
 
             new_state = current_state.copy()
             new_state.state[try_node] = world_node_ind
             new_state.n_determined += 1
-            new_state.loss[try_node] = np.maximum(new_state.candidates_0[try_node,world_node_ind],new_state.candidates_1[try_node,world_node_ind])
+            new_state.loss[try_node] = np.maximum(new_state.candidates_0[try_node,world_node_ind],new_state.candidates_1[try_node,world_node_ind])+cand_upper_bound+1
 
             for try_node_adj in np.argwhere(tmplt.sym_composite_adj[try_node]):
                 if new_state.state[try_node_adj[1]]==-1:
@@ -126,8 +128,9 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
             candidates_0_old = new_state.candidates_0.copy()
 
-            new_state.candidates_0[:,world_node_ind] = INF1
-            new_state.candidates_0[try_node] = (1-one_hot(world_node_ind, world.n_nodes))*INF1
+            new_state.candidates_0[:,world_node_ind] = 0
+            new_state.candidates_0[try_node] = 0
+            new_state.candidates_0[try_node,world_node_ind] = -cand_upper_bound-1
 
             new_state.candidates_1 = noisy_topology_filter(tmplt, world, new_state.candidates_0, candidates_0_old=candidates_0_old, candidates_old=new_state.candidates_1, changed_cands=one_hot(try_node, tmplt.n_nodes),cand_upper_bound=cand_upper_bound)[2]
 
@@ -187,18 +190,15 @@ def best_matching(tmplt, world, *, candidates=None, verbose=True, cand_upper_bou
     #     tmplt, world, candidates = uclasm.run_noisy_filters(
     #         tmplt, world, noisy_filters=uclasm.all_noisy_filters, verbose=True)
     if cache==None:
-        tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world)
+        tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world, cand_upper_bound=cand_upper_bound)
     else:
+        cache += str(cand_upper_bound)
         if path.exists(cache):
             tmplt, world, candidates_0, candidates_1 = pickle.load(open(cache,'rb'))
         else:
-            tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world)
+            tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world, cand_upper_bound=cand_upper_bound)
             pickle.dump((tmplt, world, candidates_0, candidates_1), open(cache,'wb'))
     #candidates = np.max(candidates_0, candidates_1)
-
-    #unspec_nodes = np.where(candidates.sum(axis=1) > 1)[0]
-    unspec_nodes = range(tmplt.n_nodes)
-    unspec_cover = get_node_cover(tmplt.subgraph(unspec_nodes))
 
     # Send zeros to init_changed_cands since we already just ran the noisy_filters
     return A_star_best_matching(
