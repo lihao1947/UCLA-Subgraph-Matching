@@ -19,7 +19,9 @@ class State():
         self.state = None
         self.loss = None
         self.n_determined = 0
-        self.used = []
+        self.candidates_0 = None
+        self.candidates_1 = None
+
         # self.g = 0
         # self.h = 0
         self.f = 0
@@ -28,8 +30,9 @@ class State():
         r = State()
         r.state = self.state.copy()
         r.loss = self.loss.copy()
-        r.used = self.used.copy()
         r.n_determined = self.n_determined
+        r.candidates_0 = self.candidates_0.copy()
+        r.candidates_1 = self.candidates_1.copy()
         r.f = self.f
         return r
 
@@ -48,8 +51,8 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
     start_state.state = -1*np.ones(tmplt.n_nodes, dtype=np.int32)
     start_state.loss = np.zeros(tmplt.n_nodes, dtype=np.int32)
     start_state.n_determined = 0
-    all_candidates_0 = candidates_0
-    all_candidates_1 = candidates_1
+    start_state.candidates_0 = candidates_0
+    start_state.candidates_1 = candidates_1
     # start_state.g = start_state.h =
     start_state.f = 0
 
@@ -63,11 +66,8 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
     heappush(open_list, start_state)
 
     # Loop until you find the end
-    iter = 0
     while len(open_list) > 0:
-        iter += 1
-        if iter%50==0:
-            pickle.dump((open_list,solution), open("cache1.pl", "wb"))
+        pickle.dump(open_list, open("cache1.pl", "wb"))
         # Get the current node
         # Pop current off open list, add to closed list
         current_state = heappop(open_list)
@@ -80,21 +80,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
                 return solution
             continue
 
-        current_candidates_0 = all_candidates_0.copy()
-        current_candidates_1 = all_candidates_1.copy()
-        changed_cands = np.zeros(tmplt.n_nodes)
-
-        if len(current_state.used)>0:
-            current_candidates_0[:,current_state.used] = INF1
-        for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
-            if current_state.state[tmplt_node_idx]<0:
-                continue
-            current_candidates_0[tmplt_node_idx] = (1-one_hot(current_state.state[tmplt_node_idx], world.n_nodes))*INF1
-            changed_cands[tmplt_node_idx] = 1
-
-        current_candidates_1 = noisy_topology_filter(tmplt, world, current_candidates_0, candidates_0_old=all_candidates_0, candidates_old=current_candidates_1, changed_cands=changed_cands,cand_upper_bound=cand_upper_bound)[2]
-
-        current_candidates = np.maximum(current_candidates_0, current_candidates_1)
+        current_candidates = np.maximum(current_state.candidates_0, current_state.candidates_1)
 
        # Choose the node with least number of zeors, i.e. most possible exact matches, then continue.
        # If there is only one exact match, then just go ahead and use this one.
@@ -121,10 +107,9 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
                 break
 
             new_state = current_state.copy()
-            new_state.used.append(world_node_ind)
             new_state.state[try_node] = world_node_ind
             new_state.n_determined += 1
-            new_state.loss[try_node] = current_candidates[try_node,world_node_ind]
+            new_state.loss[try_node] = np.maximum(new_state.candidates_0[try_node,world_node_ind],new_state.candidates_1[try_node,world_node_ind])
 
             for try_node_adj in np.argwhere(tmplt.sym_composite_adj[try_node]):
                 if new_state.state[try_node_adj[1]]==-1:
@@ -138,6 +123,13 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
                     new_state.loss[try_node_adj[1]] = np.maximum(0,new_state.loss[try_node_adj[1]])
 
             new_state.f = np.sum(new_state.loss)
+
+            candidates_0_old = new_state.candidates_0.copy()
+
+            new_state.candidates_0[:,world_node_ind] = INF1
+            new_state.candidates_0[try_node] = (1-one_hot(world_node_ind, world.n_nodes))*INF1
+
+            new_state.candidates_1 = noisy_topology_filter(tmplt, world, new_state.candidates_0, candidates_0_old=candidates_0_old, candidates_old=new_state.candidates_1, changed_cands=one_hot(try_node, tmplt.n_nodes),cand_upper_bound=cand_upper_bound)[2]
 
             # Add the child to the open list
             heappush(open_list, new_state)
