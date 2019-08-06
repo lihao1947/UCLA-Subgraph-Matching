@@ -4,9 +4,10 @@ from .topology_filter import topology_filter
 from .neighborhood_filter import neighborhood_filter
 from .permutation_filter import permutation_filter
 from .run_filters import run_filters
+from .new_filter import new_filter
 
 # These are the most commonly used filters
-cheap_filters = [stats_filter, topology_filter]
+cheap_filters = [stats_filter, topology_filter, permutation_filter]
 
 # This needs to be imported after cheap_filters is defined since it relies
 # on cheap_filters
