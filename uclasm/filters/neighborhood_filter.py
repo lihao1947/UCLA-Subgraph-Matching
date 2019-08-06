@@ -66,7 +66,7 @@ def neighborhood_filter(tmplt, world, candidates, *,
         lap_mat_rows = []
         for tnbr_idx in range(tmplt.n_nodes):
             lap_mat_row = sparse_is_cand[tnbr_idx]
-            # Check if all off the necessary edges are present
+            # Check if all of the necessary edges are present
             for i, edge_count in enumerate(tmplt_seq[:,tnbr_idx].A.flat):
                 if edge_count > 0:
                     lap_mat_row = lap_mat_row.multiply(world_seq[i] >= edge_count)
