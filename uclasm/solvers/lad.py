@@ -26,8 +26,9 @@ def run_LAD(tmplt, world, timeout=60, stop_first=False, induced=False, enum=Fals
     """
 
     # We need to create temporary files 
-    tmp_tmplt_filename = tmplt.name + '.txt'
-    tmp_world_filename = world.name + '.txt'
+    # We append the pid to prevent problems with multiprocessing
+    tmp_tmplt_filename = tmplt.name + '_template_' + str(os.getpid()) + '.txt'
+    tmp_world_filename = world.name + '_world_' + str(os.getpid()) + '.txt'
 
     tmplt.write_file_solnon(tmp_tmplt_filename)
     world.write_file_solnon(tmp_world_filename)
