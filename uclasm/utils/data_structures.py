@@ -2,6 +2,8 @@
 Filtering algorithms expect data to come in the form of Graph objects
 """
 
+import os
+
 from uclasm.utils.misc import index_map
 import scipy.sparse as sparse
 import numpy as np
@@ -13,6 +15,7 @@ class Graph:
         self.n_nodes = len(nodes)
         self.node_idxs = index_map(self.nodes)
         self.ch_to_adj = {ch: adj for ch, adj in zip(channels, adjs)}
+        self.is_sparse = all([isinstance(adj, sparse.csr.csr_matrix) for adj in adjs])
 
         if labels is None:
             labels = [None]*len(nodes)
@@ -23,6 +26,10 @@ class Graph:
         self._sym_composite_adj = None
         self._is_nbr = None
         self.name = name
+
+        self.in_degree_array = None
+        self.out_degree_array = None
+        self.neighbors = []
 
     @property
     def composite_adj(self):
@@ -62,6 +69,29 @@ class Graph:
         """
         return np.argwhere(sparse.tril(self.is_nbr))
 
+    @property
+    def out_degree(self):
+        if self.out_degree_array is not None:
+            return self.out_degree_array
+        else:
+            self.out_degree_array = {channel: self.ch_to_adj[channel].sum(axis=1)
+                                     for channel in self.channels}
+            return self.out_degree_array
+
+    @property
+    def in_degree(self):
+        if self.in_degree_array is not None:
+            return self.in_degree_array
+        else:
+            self.in_degree_array = {channel: self.ch_to_adj[channel].sum(axis=0)
+                                     for channel in self.channels}
+            return self.in_degree_array
+
+    def compute_neighbors(self):
+        for i in range(self.n_nodes):
+            # We grab first element since nonzero returns a tuple of 1 element
+            self.neighbors.append(self.sym_composite_adj[i].nonzero()[0])
+
     def subgraph(self, node_idxs):
         """
         Returns the subgraph induced by candidates
@@ -74,6 +104,38 @@ class Graph:
 
         # Return a new graph object for the induced subgraph
         return Graph(nodes, self.channels, adjs, labels=labels)
+
+    def sparsify(self):
+        """
+        Converts the stored adjacency matrices into sparse matrices in the
+        csr_matrix format
+        """
+        if self.is_sparse:
+            return
+        for ch, adj in self.ch_to_adj.items():
+            self.ch_to_adj[ch] = sparse.csr_matrix(adj)
+        self.is_sparse = True
+
+    def densify(self):
+        """
+        Converts the stored adjacency matrices into standard arrays.
+        This only affects the matrices in self.ch_to_adj, not any other
+        possible sparse representations of data.
+
+        This will cause an error if the matrices are already dense.
+        """
+        if not self.is_sparse:
+            return
+        for ch, adj in self.ch_to_adj.items():
+            self.ch_to_adj[ch] = adj.A
+        self.is_sparse = False
+
+    def convert_dtype(self, dtype):
+        """
+        Convert the stored adjacency matrices to the specified data type.
+        """
+        for ch, adj in self.ch_to_adj.items():
+            self.ch_to_adj[ch] = adj.astype(dtype)
 
     def copy(self):
         """
@@ -99,20 +161,28 @@ class Graph:
 
         return edge_counts
 
-    def edge_iterator(self):
+    def edge_iterator(self, channel=None):
         """
         This will iterate over all the edges in the graph in no particular
         order except it will list them channel by channel.
 
         It will yield a 4-tuple listing in order the channel, start node index,
         end node index, and the edge count.
+
+        If you only want one channel, you may pass it in.
         """
-        for channel in self.channels:
+        if channel is None:
+            channels = self.channels
+        else:
+            channels = [channel]
+
+        for channel in channels:
             adj_mat = self.ch_to_adj[channel]
 
             for i, j in zip(*adj_mat.nonzero()):
                 edge_count = adj_mat[i,j]
                 yield channel, i, j, edge_count
+
 
     def add_edge(self, channel, node_1, node_2, count=1):
         """
@@ -161,6 +231,16 @@ class Graph:
             for i in range(curr_index+1, self.n_nodes):
                 f.write('0\n')
 
+    def _add_channel_to_name(self, filename, channel):
+        """
+        Helper function for appending a channel name to a filename
+        """
+        *name, ext = filename.split('.')
+        name = '.'.join(name)
+        new_name = name + '_' + str(channel) + '.' + ext
+        return new_name
+
+
     def write_file_solnon(self, filename):
         """
         Writes out the graph in solnon format. This format is described as follows:
@@ -173,13 +253,8 @@ class Graph:
         """
 
         if len(list(self.channels)) > 1:
-            def add_channel_to_name(filename, channel):
-                *name, ext = filename.split('.')
-                name = '.'.join(name)
-                new_name = name + '_' + str(channel) + '.' + ext
-                return new_name
-
-            filenames = [add_channel_to_name(filename, channel) for channel in self.channels]
+            filenames = [self._add_channel_to_name(filename, channel)
+                         for channel in self.channels]
 
             for name, channel in zip(filenames, self.channels):
                 self.write_channel_solnon(name, channel)
@@ -188,17 +263,91 @@ class Graph:
             channel = list(self.channels)[0]
             self.write_channel_solnon(filename, channel)
 
+    def write_channel_gfd(self, filename, channel):
+        """
+        Write a single channel in gfd format.
+        """
+        with open(filename, 'w') as f:
+            f.write('#{}\n'.format(self.name))
+            f.write('{}\n'.format(self.n_nodes))
+            for i in range(self.n_nodes):
+                f.write('A\n') # A is a dummy label for each node since our graphs are unlabelled
+            f.write('{}\n'.format(self.get_n_edges()[channel]))
+            for _, fro, to, count in self.edge_iterator(channel):
+                for i in range(count):
+                    f.write('{} {}\n'.format(fro, to))
+
+    def write_gfd(self, filename):
+        """
+        Writes the graph in the gfd format described in
+        https://github.com/InfOmics/RI. Since our graphs are unlabelled, all
+        nodes will have the same label (a dummy label "A").
+
+        If there are multiple channels, it will create one file for each channel.
+
+        Args:
+            filename (str): The name of the file to write to
+        """
+        if len(list(self.channels)) > 1:
+            filenames = [self.add_channel_to_name(filename, channel)
+                         for channel in self.channels]
+            
+            for name, channel in zip(filenames, self.channels):
+                self.write_channel_gfd(name, channel)
+        else:
+            channel = list(self.channels)[0]
+            self.write_channel_gfd(filename, channel)
+
+
+    def write_to_file(self, filename):
+        """
+        Writes the graph out in the following format:
+
+        <Graph Name>
+        <# Nodes>
+        <# Channels>
+        <Channel1>
+        <# Edges in Channel1>
+        <From1> <To1> <Count1>
+        ...
+        <FromN> <ToN> <CountN>
+        <Channel2>
+        <# Edges in Channel1>
+        ...
+
+        where <Fromi>, <Toi> <Counti> are the index of the source node,
+        the index of the destination node, and the count of edges for the
+        i-th edge in a given channel.
+        """
+        with open(filename, 'w') as f:
+            f.write('{}\n'.format(self.name))
+            f.write('{}\n'.format(self.n_nodes))
+            f.write('{}\n'.format(len(list(self.channels))))
+            for channel in self.channels:
+                f.write('{}\n'.format(channel))
+                f.write('{}\n'.format(self.get_n_edges()[channel]))
+                for _, fro, to, count in self.edge_iterator(channel):
+                    f.write('{} {} {}\n'.format(fro, to, count))
+
     def channel_to_networkx_graph(self, channel):
         """
         Convert the given channel into a networkx MultiDiGraph.
         """
-        return nx.MultiDiGraph(self.ch_to_adj[channel])
+        return nx.from_scipy_sparse_matrix(self.ch_to_adj[channel], parallel_edges=True)
 
     def to_networkx_graph(self):
         """
         Return a dictionary mapping channels to networkx MultiDiGraphs.
         """
         return {channel: self.channel_to_networkx_graph(channel) for channel in self.channels}
+
+    def to_networkx_composite_graph(self):
+        """
+        Return a networkx-style MultiDiGraph from the sum of the adjacency
+        matrices
+        """
+        comp_matrix = sum(self.ch_to_adj.values())
+        return nx.from_scipy_sparse_matrix(comp_matrix, parallel_edges=True)
 
     def isolated_nodes(self):
         """
@@ -214,6 +363,49 @@ class Graph:
             outdegree = adj_mat.sum(axis=1).A
             indegree = adj_mat.sum(axis=0).A
             zero_out = set(np.where(outdegree == 0)[0])
-            zero_in = set(np.where(indegree = 0)[0])
+            zero_in = set(np.where(indegree == 0)[0])
             sets.append(zero_out & zero_in)
-        return sets[0].intersection(sets[1:])
+        retval = sets[0].intersection(*sets[1:])
+        return retval
+
+
+def read_gfd(filename):
+    with open(filename) as f:
+        name = f.readline().rstrip()[1:]
+        n_nodes = int(f.readline())
+        # We ignore the labels for now
+        for _ in range(n_nodes):
+            f.readline()
+        n_edges = int(f.readline())
+        A = np.array((n_nodes, n_nodes))
+        for _ in range(n_edges):
+            fro, to = list(map(int, f.readline().rstrip().split()))
+            A[fro,to] = 1
+    return Graph(list(range(n_nodes)), ['0'], [sparse.csr_matrix(A)], name=name)
+
+
+def read_from_file(filename):
+    """
+    Reads in a multichannel graph from a file in the format specified in
+    write_to_file.
+    """
+    with open(filename) as f:
+        name =  f.readline().rstrip()
+        n_nodes = int(f.readline())
+        n_channels = int(f.readline())
+        channels = []
+        adjs = []
+        for i in range(n_channels):
+            adj_mat = np.zeros((n_nodes, n_nodes))
+            channel_name = f.readline().rstrip()
+            channel_size = int(f.readline())
+            seen = 0
+            while seen < channel_size:
+                fro, to, count = list(map(int, f.readline().rstrip().split()))
+                adj_mat[fro,to] = count
+                seen += count
+            channels.append(channel_name)
+            adjs.append(sparse.csr_matrix(adj_mat))
+
+        nodes = list(range(n_nodes))
+        return Graph(nodes, channels, adjs, name=name)
