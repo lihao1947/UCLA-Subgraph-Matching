@@ -66,8 +66,11 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
     heappush(open_list, start_state)
 
     # Loop until you find the end
+    iter = 0
     while len(open_list) > 0:
-        pickle.dump(open_list, open("cache1.pl", "wb"))
+        iter += 1
+        if iter % 50 ==0:
+            pickle.dump(open_list, open("cache1.pl", "wb"))
         # Get the current node
         # Pop current off open list, add to closed list
         current_state = heappop(open_list)
@@ -190,7 +193,7 @@ def best_matching(tmplt, world, *, candidates=None, verbose=True, cand_upper_bou
         tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world)
     else:
         if path.exists(cache):
-            tmplt, world, candidates_0, candidates_1 = pickle.load(open(cache,'rb'))
+            candidates_0, candidates_1 = pickle.load(open(cache,'rb'))[2:4]
         else:
             tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world)
             pickle.dump((tmplt, world, candidates_0, candidates_1), open(cache,'wb'))
