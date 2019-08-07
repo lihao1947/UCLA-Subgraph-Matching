@@ -3,7 +3,7 @@ from ..utils.misc import invert, values_map_to_same_key, one_hot
 from ..utils.graph_ops import get_node_cover
 import numpy as np
 from functools import reduce
-from heapq import heappush, heappop
+from heapq import heappush, heappop, nlargest
 import uclasm
 import pickle
 from .. import INF1
@@ -73,7 +73,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             pickle.dump(open_list, open("cache1.pl", "wb"))
         # Get the current node
         # Pop current off open list, add to closed list
-        current_state = heappop(open_list)
+        current_state = nlargest(open_list)
         # closed_list.append(current_state)
 
         # Found the goal
@@ -137,6 +137,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             # Add the child to the open list
             if new_state.f<=f_upper_bound:
                 heappush(open_list, new_state)
+                break
 
 # def A_star_best_matching(tmplt, world, candidates_0, candidates_1,
 #                                   unspec_cover, verbose):
