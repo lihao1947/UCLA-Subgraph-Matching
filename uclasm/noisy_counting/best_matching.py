@@ -21,6 +21,7 @@ class State():
         self.n_determined = 0
         self.candidates_0 = None
         self.candidates_1 = None
+        self.child = 0
 
         # self.g = 0
         # self.h = 0
@@ -55,6 +56,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
     start_state.candidates_1 = candidates_1
     # start_state.g = start_state.h =
     start_state.f = 0
+    start_state.child = 0
 
 
 
@@ -73,7 +75,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             pickle.dump(open_list, open("cache1.pl", "wb"))
         # Get the current node
         # Pop current off open list, add to closed list
-        current_state = nlargest(open_list)
+        current_state = open_list[0]
         # closed_list.append(current_state)
 
         # Found the goal
@@ -104,8 +106,14 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             try_node_candidates = current_candidates[idx]
             try_node = idx
 
-        for world_node_ind in np.argsort(try_node_candidates):
+        new_state_flag = False
+        for child_ind, world_node_ind in enumerate(np.argsort(try_node_candidates)):
             # need more consideration
+            if child_ind<current_state.child:
+                continue
+
+            current_state.child += 1
+
             if try_node_candidates[world_node_ind]>f_upper_bound:
                 break
 
@@ -126,6 +134,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
                     new_state.loss[try_node_adj[1]] = np.maximum(0,new_state.loss[try_node_adj[1]])
 
             new_state.f = np.sum(new_state.loss)
+            new_state.child = 0
 
             candidates_0_old = new_state.candidates_0.copy()
 
@@ -137,8 +146,11 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             # Add the child to the open list
             if new_state.f<=f_upper_bound:
                 heappush(open_list, new_state)
+                new_state_flag = True
                 break
 
+        if not new_state_flag:
+            heappop(open_list)
 # def A_star_best_matching(tmplt, world, candidates_0, candidates_1,
 #                                   unspec_cover, verbose):
 #     # If the node cover is empty, the unspec nodes are disconnected. Thus, we
