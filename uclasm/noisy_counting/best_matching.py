@@ -81,6 +81,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
         # Found the goal
         if current_state.is_end():
             solution.append(current_state)
+            heappop(open_list)
             if len(solution)>=num_isomorphism:
                 return solution
             continue
