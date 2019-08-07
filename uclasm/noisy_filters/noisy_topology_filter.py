@@ -13,7 +13,7 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj, world_adj)
         yield (tmplt_adj.T, world_adj.T)
 
-def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, changed_cands=None, cand_upper_bound=4):
+def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, changed_cands=None, f_upper_bound=4):
     """
     For each pair of neighbors in the template, ensure that any candidate for
     one neighbor has a corresponding candidate for the other neighbor to which
@@ -35,8 +35,8 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
 
         # get indicators of candidate nodes in the world adjacency matrices
         # threshold of missing_edges
-        src_is_cand = candidates_0[src_idx]<=cand_upper_bound
-        dst_is_cand = candidates_0[dst_idx]<=cand_upper_bound
+        src_is_cand = candidates_0[src_idx]<=f_upper_bound
+        dst_is_cand = candidates_0[dst_idx]<=f_upper_bound
         if np.sum(src_is_cand)<=0 or np.sum(dst_is_cand)<=0:
             continue
         # figure out which candidates have enough edges between them in world
@@ -108,7 +108,7 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
 
     return tmplt, world, candidates
 
-def noisy_topology_filter(tmplt, world, candidates_0, candidates_0_old=None, candidates_old=None, changed_cands=None, cand_upper_bound=4):
+def noisy_topology_filter(tmplt, world, candidates_0, candidates_0_old=None, candidates_old=None, changed_cands=None, f_upper_bound=4):
     """
     For each pair of neighbors in the template, ensure that any candidate for
     one neighbor has a corresponding candidate for the other neighbor to which
@@ -118,10 +118,10 @@ def noisy_topology_filter(tmplt, world, candidates_0, candidates_0_old=None, can
                    candidates that have changed since last time this ran
     """
     if candidates_old is None or candidates_old is None or changed_cands is None:
-        return _noisy_topology_filter(tmplt, world, candidates_0, np.zeros((tmplt.n_nodes, world.n_nodes), dtype=np.int64),cand_upper_bound=cand_upper_bound)
+        return _noisy_topology_filter(tmplt, world, candidates_0, np.zeros((tmplt.n_nodes, world.n_nodes), dtype=np.int64),f_upper_bound=f_upper_bound)
 
-    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0_old, candidates_old, sign=-1, changed_cands = changed_cands, cand_upper_bound=cand_upper_bound)
+    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0_old, candidates_old, sign=-1, changed_cands = changed_cands, f_upper_bound=f_upper_bound)
 
-    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, changed_cands = changed_cands, cand_upper_bound=cand_upper_bound)
+    tmplt, world, candidates = _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, changed_cands = changed_cands, f_upper_bound=f_upper_bound)
 
     return tmplt, world, candidates
