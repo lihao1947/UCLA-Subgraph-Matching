@@ -8,7 +8,6 @@ from utils import data
 import uclasm
 import pickle
 import matplotlib.pyplot as plt
-from filters.attribute_filter_btn import attribute_filter
 from plotting.plot_noise import plot_lost_edge
 
 
