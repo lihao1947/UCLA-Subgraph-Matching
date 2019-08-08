@@ -19,7 +19,7 @@ def count_missing_edges(tmplt, world, signal):
         
         src_is_cand = correspond[tmplt.nodes[src_idx]]
         dst_is_cand = correspond[tmplt.nodes[dst_idx]]
-    
+        missing_edge = 0
         
         
         enough_edges = None
@@ -32,16 +32,21 @@ def count_missing_edges(tmplt, world, signal):
                 
             world_adj_val = world_adj[src_is_cand, dst_is_cand]
             
-            missing_edge = world_adj_val - tmplt_adj_val 
+            if tmplt_adj_val - world_adj_val >= 0 :
+                missing_edge = missing_edge + tmplt_adj_val - world_adj_val
             
-            if missing_edge >= 0 :
-                miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = ''
-            else:
-                miss = miss - missing_edge
-                miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = str(missing_edge)
+            # print("template has", tmplt_adj_val ,"edges", tmplt.nodes[src_idx],tmplt.nodes[dst_idx])
+            # print("world has", world_adj_val ,"edges", world.nodes[src_is_cand],world.nodes[dst_is_cand])
+            # print("missing", missing_edge ,"edges")
             
+        if missing_edge > 0 :
+            miss = miss + missing_edge
+            miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = str(missing_edge)
+        else :
+            miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = ""
+        
+        
     
 
-    miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])]= "6"
     print ("Signal miss", miss, "edges")
-    return miss, miss_dict
+    return miss, miss_dict, correspond
