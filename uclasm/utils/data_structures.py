@@ -29,6 +29,7 @@ class Graph:
 
         self.in_degree_array = None
         self.out_degree_array = None
+        self.degree_array = None
         self.neighbors = []
 
     @property
@@ -86,6 +87,16 @@ class Graph:
             self.in_degree_array = {channel: self.ch_to_adj[channel].sum(axis=0)
                                      for channel in self.channels}
             return self.in_degree_array
+
+    @property
+    def degree(self):
+        if self.degree_array is not None:
+            return self.degree_array
+        else:
+            self.degree_array = {channel: self.in_degree[channel] + self.out_degree[channel]
+                                 for channel in self.channels}
+            return self.degree_array
+
 
     def compute_neighbors(self):
         for i in range(self.n_nodes):
@@ -347,7 +358,8 @@ class Graph:
         matrices
         """
         comp_matrix = sum(self.ch_to_adj.values())
-        return nx.from_scipy_sparse_matrix(comp_matrix, parallel_edges=True)
+        return nx.from_scipy_sparse_matrix(comp_matrix, parallel_edges=True,
+                                           create_using=nx.MultiDiGraph)
 
     def isolated_nodes(self):
         """
