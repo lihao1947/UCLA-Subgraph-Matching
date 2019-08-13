@@ -30,7 +30,7 @@ class Graph:
         self.in_degree_array = None
         self.out_degree_array = None
         self.degree_array = None
-        self.neighbors = []
+        self.neighbors_list = []
 
     @property
     def composite_adj(self):
@@ -97,11 +97,22 @@ class Graph:
                                  for channel in self.channels}
             return self.degree_array
 
+    @property
+    def neighbors(self):
+        if self.neighbors_list:
+            return self.neighbors_list
+        else:
+            self.compute_neighbors()
+        return self.neighbors_list
 
     def compute_neighbors(self):
         for i in range(self.n_nodes):
             # We grab first element since nonzero returns a tuple of 1 element
-            self.neighbors.append(self.sym_composite_adj[i].nonzero()[0])
+            if self.is_sparse:
+                self.neighbors_list.append(self.sym_composite_adj[i].nonzero()[1])
+            else:
+                self.neighbors_list.append(self.sym_composite_adj[i].nonzero()[0])
+                
 
     def subgraph(self, node_idxs):
         """
