@@ -40,6 +40,14 @@ class State():
     def is_end(self):
         return self.n_determined == len(self.state)
 
+    def equivalence_order(self, equiv_classes):
+        for equiv_class in equiv_classes:
+            tmp = self.state[equiv_class]
+            tmp = tmp[tmp>0]
+            if np.sum((tmp[1:]-tmp[0:-1])<0)>0:
+                return False
+        return True
+
     def __lt__(self, other):
         return (self.n_determined > other.n_determined) or ((self.f < other.f) and (self.n_determined == other.n_determined))
 
@@ -120,6 +128,8 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
             new_state = current_state.copy()
             new_state.state[try_node] = world_node_ind
+            if not new_state.equivalence_order(tmplt.equiv_classes):
+                continue
             new_state.n_determined += 1
             new_state.loss[try_node] = np.maximum(new_state.candidates_0[try_node,world_node_ind],new_state.candidates_1[try_node,world_node_ind])
 
