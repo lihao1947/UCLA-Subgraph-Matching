@@ -22,6 +22,7 @@ class State():
         self.candidates_0 = None
         self.candidates_1 = None
         self.child = 0
+        self.already_missing = 0
 
         # self.g = 0
         # self.h = 0
@@ -35,6 +36,8 @@ class State():
         r.candidates_0 = self.candidates_0.copy()
         r.candidates_1 = self.candidates_1.copy()
         r.f = self.f
+        r.already_missing = self.already_missing
+
         return r
 
     def is_end(self):
@@ -51,7 +54,7 @@ class State():
     def __lt__(self, other):
         return (self.n_determined > other.n_determined) or ((self.f < other.f) and (self.n_determined == other.n_determined))
 
-def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphism=1, f_upper_bound=0):
+def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphism=5, f_upper_bound=0):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
     solution = []
@@ -65,6 +68,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
     # start_state.g = start_state.h =
     start_state.f = 0
     start_state.child = 0
+    start_state.already_missing = 0
 
 
 
@@ -131,20 +135,16 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             if not new_state.equivalence_order(tmplt.equiv_classes):
                 continue
             new_state.n_determined += 1
-            new_state.loss[try_node] = np.maximum(new_state.candidates_0[try_node,world_node_ind],new_state.candidates_1[try_node,world_node_ind])
+            # new_state.loss[try_node] = np.maximum(new_state.candidates_0[try_node,world_node_ind],new_state.candidates_1[try_node,world_node_ind])
 
             for try_node_adj in np.argwhere(tmplt.sym_composite_adj[try_node]):
                 if new_state.state[try_node_adj[1]]==-1:
                     continue
                 for channel, tmplt_adj in tmplt.ch_to_adj.items():
                     world_adj = world.ch_to_adj[channel]
-                    new_state.loss[try_node_adj[1]] -= np.maximum(np.int32(tmplt_adj[try_node,try_node_adj[1]])-np.int32(world_adj[world_node_ind,new_state.state[try_node_adj[1]]]),0)
+                    new_state.already_missing += np.maximum(np.int32(tmplt_adj[try_node,try_node_adj[1]])-np.int32(world_adj[world_node_ind,new_state.state[try_node_adj[1]]]),0)
 
-                    new_state.loss[try_node_adj[1]] -= np.maximum(np.int32(tmplt_adj.T[try_node,try_node_adj[1]])-np.int32(world_adj.T[world_node_ind,new_state.state[try_node_adj[1]]]),0)
-
-                    new_state.loss[try_node_adj[1]] = np.maximum(0,new_state.loss[try_node_adj[1]])
-
-            new_state.f = np.sum(new_state.loss)
+                    new_state.already_missing += np.maximum(np.int32(tmplt_adj.T[try_node,try_node_adj[1]])-np.int32(world_adj.T[world_node_ind,new_state.state[try_node_adj[1]]]),0)
             new_state.child = 0
 
             candidates_0_old = new_state.candidates_0.copy()
@@ -154,6 +154,10 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
             new_state.candidates_1 = noisy_topology_filter(tmplt, world, new_state.candidates_0, candidates_0_old=candidates_0_old, candidates_old=new_state.candidates_1, changed_cands=one_hot(try_node, tmplt.n_nodes),f_upper_bound=f_upper_bound)[2]
 
+            for assigned_node in np.argwhere(new_state.state>=0):
+                new_state.loss[assigned_node] = np.maximum(new_state.candidates_0[assigned_node,new_state.state[assigned_node]],new_state.candidates_1[assigned_node,new_state.state[assigned_node]])
+
+            new_state.f = np.sum(new_state.loss) - new_state.already_missing
             # Add the child to the open list
             if new_state.f<=f_upper_bound:
                 heappush(open_list, new_state)
