@@ -73,7 +73,7 @@ def topology_filter(tmplt, world, candidates, *,
     return tmplt, world, candidates
 
 
-def topology_filter_dense(tmplt, world, candidates, *, 
+def topology_filter_dense(tmplt, world, candidates, 
                     noise_level=0, changed_cands=None, **kwargs):
     """
     For each pair of neighbors in the template, ensure that any candidate for
@@ -84,6 +84,10 @@ def topology_filter_dense(tmplt, world, candidates, *,
                    candidates that have changed since last time this ran
     """
     for src_idx, dst_idx in tmplt.nbr_idx_pairs:
+        # if enough noise to ignore all edges, don't bother trying to filter
+        #if tmplt.sym_composite_adj[src_idx,dst_idx] <= noise_level:
+            #continue
+
         if changed_cands is not None:
             # If neither the source nor destination has changed, there is no
             # point in filtering on this pair of nodes
