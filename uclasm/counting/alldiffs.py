@@ -15,15 +15,15 @@ def recursive_alldiff_counter(node_to_cands_classes, cands_to_cand_counts,
 
     # no nodes left to assign
     if len(node_to_cands_classes) == 0:
-        #if verbose:
-            #print("\t\tMatch (count={}):".format(solution_count))
+        if verbose:
+            print("\t\tMatch (count={}):".format(solution_count))
         
-        #print("Match:", file=open_file)
-        #for (t, w) in matching:
-            #print("{} -> {}".format(t, tuple(map(int, w))), file=open_file)
+        print("Match:", file=open_file)
+        for (t, w) in matching:
+            print("{} -> {}".format(t, tuple(map(int, w))), file=open_file)
         total_count += solution_count
-        #if verbose:
-            #print("Total Solution Count: {}".format(total_count))
+        if verbose:
+            print("Total Solution Count: {}".format(total_count))
         return 1
 
     count = 0
