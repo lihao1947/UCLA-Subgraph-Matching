@@ -54,7 +54,7 @@ class State():
     def __lt__(self, other):
         return (self.n_determined > other.n_determined) or ((self.f < other.f) and (self.n_determined == other.n_determined))
 
-def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphism=5, f_upper_bound=0):
+def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphism=1, f_upper_bound=0):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
     solution = []
@@ -108,10 +108,10 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             if current_state.state[tmplt_node_idx]>=0:
                 continue
             zeros = np.sum(current_candidates[tmplt_node_idx]<=f_upper_bound)
-            if zeros == 1:
-                try_node_candidates = current_candidates[tmplt_node_idx]
-                try_node = tmplt_node_idx
-                break
+            # if zeros == 1:
+            #     try_node_candidates = current_candidates[tmplt_node_idx]
+            #     try_node = tmplt_node_idx
+            #     break
             zero_remain.append((tmplt_node_idx, zeros))
 
         if try_node_candidates is None:
@@ -154,12 +154,14 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
             new_state.candidates_1 = noisy_topology_filter(tmplt, world, new_state.candidates_0, candidates_0_old=candidates_0_old, candidates_old=new_state.candidates_1, changed_cands=one_hot(try_node, tmplt.n_nodes),f_upper_bound=f_upper_bound)[2]
 
+            new_candidates = np.maximum(new_state.candidates_0, new_state.candidates_1)
+
             for assigned_node in np.argwhere(new_state.state>=0):
                 new_state.loss[assigned_node] = np.maximum(new_state.candidates_0[assigned_node,new_state.state[assigned_node]],new_state.candidates_1[assigned_node,new_state.state[assigned_node]])
 
             new_state.f = np.sum(new_state.loss) - new_state.already_missing
             # Add the child to the open list
-            if new_state.f<=f_upper_bound:
+            if new_state.f+np.sum(np.min(new_candidates[new_state.state<0,:],axis=1))<=2*f_upper_bound and new_state.f<=f_upper_bound:
                 heappush(open_list, new_state)
                 new_state_flag = True
                 break
@@ -218,13 +220,14 @@ def best_matching(tmplt, world, *, candidates=None, verbose=True, f_upper_bound=
     # if candidates is None:
     #     tmplt, world, candidates = uclasm.run_noisy_filters(
     #         tmplt, world, noisy_filters=uclasm.all_noisy_filters, verbose=True)
+    cache = cache + str(f_upper_bound) + '.pl'
     if cache==None:
-        tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world)
+        tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world, f_upper_bound=f_upper_bound)
     else:
         if path.exists(cache):
             candidates_0, candidates_1 = pickle.load(open(cache,'rb'))[2:4]
         else:
-            tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world)
+            tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world, f_upper_bound=f_upper_bound)
             pickle.dump((tmplt, world, candidates_0, candidates_1), open(cache,'wb'))
     #candidates = np.max(candidates_0, candidates_1)
 

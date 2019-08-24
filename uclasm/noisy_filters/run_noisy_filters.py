@@ -8,11 +8,11 @@ from . import noisy_topology_filter
 from ..utils import summarize
 
 # TODO: logging
-def run_noisy_filters(tmplt, world, verbose=False):
+def run_noisy_filters(tmplt, world, f_upper_bound=4, verbose=False):
 
     tmplt, world, candidates_0 = noisy_stats_filter(tmplt, world, verbose = True)
 
-    tmplt, world, candidates_1 = noisy_topology_filter(tmplt, world, candidates_0)
+    tmplt, world, candidates_1 = noisy_topology_filter(tmplt, world, candidates_0, f_upper_bound=f_upper_bound)
 
     return tmplt, world, candidates_0, candidates_1
 # def run_noisy_filters(tmplt, world, *,

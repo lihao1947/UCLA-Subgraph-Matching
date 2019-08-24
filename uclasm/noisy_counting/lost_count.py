@@ -14,6 +14,7 @@ def count_missing_edges(tmplt, world, signal):
 
     correspond = dict(zip(tmplt.nodes, signal))
 
+    node_miss = np.zeros(tmplt.n_nodes)
 
     for src_idx, dst_idx in tmplt.nbr_idx_pairs:
 
@@ -38,10 +39,14 @@ def count_missing_edges(tmplt, world, signal):
                 miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = ''
             else:
                 miss = miss - missing_edge
+
+                node_miss[src_idx]-=missing_edge
+                node_miss[dst_idx]-=missing_edge
+
                 miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = str(missing_edge)
 
 
 
     miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])]= "6"
     print ("Signal miss", miss, "edges")
-    return miss, miss_dict
+    return miss, miss_dict, node_miss
