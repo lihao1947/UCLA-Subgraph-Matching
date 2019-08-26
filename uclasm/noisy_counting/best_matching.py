@@ -107,7 +107,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
         for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
             if current_state.state[tmplt_node_idx]>=0:
                 continue
-            zeros = np.sum(current_candidates[tmplt_node_idx]<=f_upper_bound)
+            zeros = np.sum(current_candidates[tmplt_node_idx]<=min(tmplt.cand_upper_bound[tmplt_node_idx],f_upper_bound))
             # if zeros == 1:
             #     try_node_candidates = current_candidates[tmplt_node_idx]
             #     try_node = tmplt_node_idx
@@ -220,7 +220,7 @@ def best_matching(tmplt, world, *, candidates=None, verbose=True, f_upper_bound=
     # if candidates is None:
     #     tmplt, world, candidates = uclasm.run_noisy_filters(
     #         tmplt, world, noisy_filters=uclasm.all_noisy_filters, verbose=True)
-    cache = cache + str(f_upper_bound) + '.pl'
+    cache = cache + str(f_upper_bound) + '_new.pl'
     if cache==None:
         tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world, f_upper_bound=f_upper_bound)
     else:

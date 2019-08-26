@@ -35,8 +35,8 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
 
         # get indicators of candidate nodes in the world adjacency matrices
         # threshold of missing_edges
-        src_is_cand = candidates_0[src_idx]<=f_upper_bound
-        dst_is_cand = candidates_0[dst_idx]<=f_upper_bound
+        src_is_cand = candidates_0[src_idx]<=tmplt.cand_upper_bound[src_idx]
+        dst_is_cand = candidates_0[dst_idx]<=tmplt.cand_upper_bound[dst_idx]
         if np.sum(src_is_cand)<=0 or np.sum(dst_is_cand)<=0:
             continue
         # figure out which candidates have enough edges between them in world
