@@ -126,11 +126,8 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
                 continue
 
             current_state.child += 1
-            print(try_node,tmplt.signal[try_node],world_node_ind)
-            if try_node_candidates[tmplt.signal[try_node]]>min(tmplt.cand_upper_bound[tmplt_node_idx],f_upper_bound):
-                print(try_node,tmplt.signal[try_node],try_node_candidates[tmplt.signal[try_node]],tmplt.cand_upper_bound[tmplt_node_idx])
 
-            if try_node_candidates[world_node_ind]>min(tmplt.cand_upper_bound[tmplt_node_idx],f_upper_bound):
+            if try_node_candidates[world_node_ind]>f_upper_bound:
                 break
 
             new_state = current_state.copy()
