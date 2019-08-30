@@ -68,6 +68,43 @@ def get_noisy(ori_graph,percentage=0.01,verbose=False):
         print("After getting noisy, the world has",graph.composite_adj.sum() ,"edges")
     return graph
 
+def get_noisy_template_number(ori_graph,edge_number=2,verbose=False):
+    graph=ori_graph.copy()
+    if(verbose==True):
+        print("Before getting noisy, the world has",ori_graph.composite_adj.sum(), "edges")
+    missing_edges={}
+    channels=graph.ch_to_adj.keys()
+    num_channels = len(channels)
+    channels_add = np.zeros(num_channels)
+    for edge_idx in range(edge_number):
+        channels_add[np.random.randint(num_channels)] += 1
+    i_list = list(range(graph.n_nodes))
+    j_list = list(range(graph.n_nodes))
+
+    for channel_idx, channel in enumerate(channels):
+        np.random.shuffle(i_list)
+        miss_edge=0
+        adj=graph.ch_to_adj[channel]
+        edge_count=adj.sum()
+        threshold=int(channels_add[channel_idx])
+        print(channel, threshold)
+        adj=adj.todense() # change it to dense matrix for better runtime
+        if(threshold<1):
+            continue
+
+        for edge_idx in range(threshold):
+            while True:
+                i = np.random.randint(graph.n_nodes)
+                j = np.random.randint(graph.n_nodes)
+                if True:
+                    adj[i,j]+=1
+                    break
+
+        graph.ch_to_adj[channel]=sparse.csr_matrix(adj) # change back to sparse matrix for further operations
+    if(verbose==True):
+        print("After getting noisy, the world has",graph.composite_adj.sum() ,"edges")
+    return graph
+
 def get_noisy_new(ori_graph,percentage=0.01,verbose=False):
     graph=ori_graph.copy()
     if(verbose==True):

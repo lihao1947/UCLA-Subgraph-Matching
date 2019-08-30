@@ -88,6 +88,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
         # Get the current node
         # Pop current off open list, add to closed list
         current_state = open_list[0]
+        print(current_state.state)
         # closed_list.append(current_state)
 
         # Found the goal
@@ -127,6 +128,13 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
             current_state.child += 1
 
+            # if tmplt.signal[try_node]==world_node_ind:
+            #     import ipdb; ipdb.set_trace()
+
+            # if try_node_candidates[tmplt.signal[try_node]]>f_upper_bound:
+            #     print(try_node,tmplt.signal[try_node],try_node_candidates[tmplt.signal[try_node]])
+            #     import ipdb; ipdb.set_trace()
+
             if try_node_candidates[world_node_ind]>f_upper_bound:
                 break
 
@@ -161,7 +169,14 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
             new_state.f = np.sum(new_state.loss) - new_state.already_missing
             # Add the child to the open list
-            if new_state.f+np.sum(np.min(new_candidates[new_state.state<0,:],axis=1))<=2*f_upper_bound and new_state.f<=f_upper_bound:
+            # if new_state.f+np.sum(np.min(new_candidates[new_state.state<0,:],axis=1))<=2*f_upper_bound and new_state.f<=f_upper_bound:
+            #     heappush(open_list, new_state)
+            #     new_state_flag = True
+            #     break
+            # import ipdb; ipdb.set_trace()
+            if world_node_ind==12694:
+                import ipdb; ipdb.set_trace()
+            if new_state.f<=f_upper_bound:
                 heappush(open_list, new_state)
                 new_state_flag = True
                 break
