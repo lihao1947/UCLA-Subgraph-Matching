@@ -160,7 +160,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             new_state.candidates_0[:,world_node_ind] = INF1
             new_state.candidates_0[try_node] = (1-one_hot(world_node_ind, world.n_nodes))*INF1
 
-            new_state.candidates_1 = noisy_topology_filter(tmplt, world, new_state.candidates_0, candidates_0_old=candidates_0_old, candidates_old=new_state.candidates_1, changed_cands=one_hot(try_node, tmplt.n_nodes),f_upper_bound=f_upper_bound)[2]
+            new_state.candidates_1, neighbor_topo= noisy_topology_filter(tmplt, world, new_state.candidates_0, candidates_0_old=candidates_0_old, candidates_old=new_state.candidates_1, changed_cands=one_hot(try_node, tmplt.n_nodes),f_upper_bound=f_upper_bound, current_node=try_node, current_node_cand=world_node_ind)[2:4]
 
             new_candidates = np.maximum(new_state.candidates_0, new_state.candidates_1)
 
@@ -168,14 +168,23 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
                 new_state.loss[assigned_node] = np.maximum(new_state.candidates_0[assigned_node,new_state.state[assigned_node]],new_state.candidates_1[assigned_node,new_state.state[assigned_node]])
 
             new_state.f = np.sum(new_state.loss) - new_state.already_missing
+
+            changed_cands = np.zeros(tmplt.n_nodes, dtype=np.bool)
+            for try_node_adj in np.argwhere(tmplt.sym_composite_adj[try_node]):
+                if new_state.state[try_node_adj[1]]==-1:
+                    new_state.candidates_0[try_node_adj[1]] -= neighbor_topo[try_node_adj[1]]
+                    new_state.candidates_0[try_node_adj[1]] = np.maximum(new_state.candidates_0[try_node_adj[1]],0)
+                    changed_cands[try_node_adj[1]] = True
+
+            new_state.candidates_1 = noisy_topology_filter(tmplt, world, new_state.candidates_0, candidates_0_old=candidates_0_old, candidates_old=new_state.candidates_1, changed_cands=changed_cands,f_upper_bound=f_upper_bound)[2]
             # Add the child to the open list
             # if new_state.f+np.sum(np.min(new_candidates[new_state.state<0,:],axis=1))<=2*f_upper_bound and new_state.f<=f_upper_bound:
             #     heappush(open_list, new_state)
             #     new_state_flag = True
             #     break
             # import ipdb; ipdb.set_trace()
-            if world_node_ind==12694:
-                import ipdb; ipdb.set_trace()
+            # if world_node_ind==13501:
+            #     import ipdb; ipdb.set_trace()
             if new_state.f<=f_upper_bound:
                 heappush(open_list, new_state)
                 new_state_flag = True
