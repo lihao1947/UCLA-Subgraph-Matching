@@ -102,7 +102,8 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
                 return solution
             continue
 
-        current_candidates = np.maximum(current_state.candidates_0, current_state.candidates_1)
+        current_candidates = np.maximum(current_state.candidates_0, current_state.candidates_1-current_state.undetermined_loss.reshape((-1,1)))
+
 
        # Choose the node with least number of zeors, i.e. most possible exact matches, then continue.
        # If there is only one exact match, then just go ahead and use this one.
@@ -111,7 +112,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
         for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
             if current_state.state[tmplt_node_idx]>=0:
                 continue
-            zeros = np.sum(current_candidates[tmplt_node_idx]<=f_upper_bound)
+            zeros = np.sum(current_candidates[tmplt_node_idx]<=f_upper_bound-current_state.f)
             # if zeros == 1:
             #     try_node_candidates = current_candidates[tmplt_node_idx]
             #     try_node = tmplt_node_idx
@@ -138,10 +139,10 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             #     print(try_node,tmplt.signal[try_node],try_node_candidates[tmplt.signal[try_node]])
             #     import ipdb; ipdb.set_trace()
 
-            if try_node_candidates[world_node_ind]>f_upper_bound:
+            if try_node_candidates[world_node_ind]>f_upper_bound-current_state.f:
                 break
-            if current_state.f+try_node_candidates[world_node_ind]-current_state.undetermined_loss[try_node]>f_upper_bound:
-                continue
+            # if current_state.f+try_node_candidates[world_node_ind]-current_state.undetermined_loss[try_node]>f_upper_bound:
+            #     continue
 
             new_state = current_state.copy()
             new_state.state[try_node] = world_node_ind
