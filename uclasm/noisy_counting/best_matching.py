@@ -21,6 +21,7 @@ class State():
         self.n_determined = 0
         self.candidates_0 = None
         self.candidates_1 = None
+        self.undetermined_loss = None
         self.child = 0
         self.already_missing = 0
 
@@ -36,6 +37,7 @@ class State():
         r.candidates_0 = self.candidates_0.copy()
         r.candidates_1 = self.candidates_1.copy()
         r.f = self.f
+        r.undetermined_loss = self.undetermined_loss
         r.already_missing = self.already_missing
 
         return r
@@ -68,6 +70,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
     # start_state.g = start_state.h =
     start_state.f = 0
     start_state.child = 0
+    start_state.undetermined_loss = np.zeros(tmplt.n_nodes, dtype=np.int32)
     start_state.already_missing = 0
 
 
@@ -137,6 +140,8 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
             if try_node_candidates[world_node_ind]>f_upper_bound:
                 break
+            if current_state.f+try_node_candidates[world_node_ind]-current_state.undetermined_loss[try_node]>f_upper_bound:
+                continue
 
             new_state = current_state.copy()
             new_state.state[try_node] = world_node_ind
@@ -170,8 +175,11 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
             new_state.f = np.sum(new_state.loss) - new_state.already_missing
 
             changed_cands = np.zeros(tmplt.n_nodes, dtype=np.bool)
+
+            candidates_0_old = new_state.candidates_0.copy()
             for try_node_adj in np.argwhere(tmplt.sym_composite_adj[try_node]):
                 if new_state.state[try_node_adj[1]]==-1:
+                    new_state.undetermined_loss[try_node_adj[1]] += neighbor_topo[try_node_adj[1]]
                     new_state.candidates_0[try_node_adj[1]] -= neighbor_topo[try_node_adj[1]]
                     new_state.candidates_0[try_node_adj[1]] = np.maximum(new_state.candidates_0[try_node_adj[1]],0)
                     changed_cands[try_node_adj[1]] = True
