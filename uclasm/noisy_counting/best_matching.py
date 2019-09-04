@@ -18,6 +18,7 @@ class State():
     def __init__(self):
         self.state = None
         self.loss = None
+        self.loss_matrix = None
         self.n_determined = 0
         self.candidates_0 = None
         self.candidates_1 = None
@@ -33,6 +34,7 @@ class State():
         r = State()
         r.state = self.state.copy()
         r.loss = self.loss.copy()
+        r.loss_matrix = self.loss_matrix.copy()
         r.n_determined = self.n_determined
         r.candidates_0 = self.candidates_0.copy()
         r.candidates_1 = self.candidates_1.copy()
@@ -64,6 +66,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
     start_state = State()
     start_state.state = -1*np.ones(tmplt.n_nodes, dtype=np.int32)
     start_state.loss = np.zeros(tmplt.n_nodes, dtype=np.int32)
+    start_state.loss_matrix = np.zeros((tmplt.n_nodes, tmplt.n_nodes), dtype=np.int32)
     start_state.n_determined = 0
     start_state.candidates_0 = candidates_0
     start_state.candidates_1 = candidates_1
@@ -170,8 +173,15 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
             new_candidates = np.maximum(new_state.candidates_0, new_state.candidates_1)
 
-            for assigned_node in np.argwhere(new_state.state>=0):
-                new_state.loss[assigned_node] = np.maximum(new_state.candidates_0[assigned_node,new_state.state[assigned_node]],new_state.candidates_1[assigned_node,new_state.state[assigned_node]])
+            # for assigned_node in np.argwhere(new_state.state>=0):
+            #     new_state.loss[assigned_node] = np.maximum(new_state.candidates_0[assigned_node,new_state.state[assigned_node]],new_state.candidates_1[assigned_node,new_state.state[assigned_node]])
+
+            new_state.loss[try_node] = np.maximum(new_state.candidates_0[try_node,new_state.state[try_node]],new_state.candidates_1[try_node,new_state.state[try_node]])
+            new_state.loss_matrix[try_node] = neighbor_topo
+            for try_node_adj in np.argwhere(tmplt.sym_composite_adj[try_node]):
+                if new_state.state[try_node_adj[1]]>=0:
+                    new_state.loss_matrix[try_node_adj[1],try_node] = neighbor_topo[try_node_adj[1]]
+                    new_state.loss[try_node_adj[1]] = np.maximum(np.sum(new_state.loss_matrix[try_node_adj[1]]),new_state.candidates_0[try_node_adj[1],new_state.state[try_node_adj[1]]])
 
             new_state.f = np.sum(new_state.loss) - new_state.already_missing
 
@@ -179,7 +189,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
             candidates_0_old = new_state.candidates_0.copy()
             for try_node_adj in np.argwhere(tmplt.sym_composite_adj[try_node]):
-                if new_state.state[try_node_adj[1]]==-1:
+                if new_state.state[try_node_adj[1]]==-1 and neighbor_topo[try_node_adj[1]]>0:
                     new_state.undetermined_loss[try_node_adj[1]] += neighbor_topo[try_node_adj[1]]
                     new_state.candidates_0[try_node_adj[1]] -= neighbor_topo[try_node_adj[1]]
                     new_state.candidates_0[try_node_adj[1]] = np.maximum(new_state.candidates_0[try_node_adj[1]],0)

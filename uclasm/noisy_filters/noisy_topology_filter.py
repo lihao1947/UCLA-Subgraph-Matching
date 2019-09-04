@@ -24,7 +24,7 @@ def _noisy_topology_filter(tmplt, world, candidates_0, candidates, sign=1, chang
     """
     #candidates = candidates_0
     if current_node is not None:
-        neighbor_topo = np.zeros(world.n_nodes, dtype=np.int64)
+        neighbor_topo = np.zeros(tmplt.n_nodes, dtype=np.int32)
 
     for src_idx, dst_idx in tmplt.nbr_idx_pairs:
         if src_idx == dst_idx:

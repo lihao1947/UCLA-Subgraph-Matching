@@ -35,7 +35,10 @@ def get_noisy(ori_graph,percentage=0.01,verbose=False):
 
         for i in range(graph.n_nodes):
             n_edge_i = np.sum(graph.sym_composite_adj[i])
-            remove_upper_bound[i] = np.random.randint(n_edge_i*percentage*2)
+            if n_edge_i*percentage*2<1:
+                remove_upper_bound[i] = 0
+            else:
+                remove_upper_bound[i] = np.random.randint(int(n_edge_i*percentage*2))
 
         for edge_idx in range(threshold):
             while True:
