@@ -12,6 +12,9 @@ def count_missing_edges(tmplt, world, signal):
     miss = 0
     miss_dict = {}
     
+    node_dict = {}
+    
+    
     correspond = dict(zip(tmplt.nodes, signal))
     
  
@@ -42,11 +45,35 @@ def count_missing_edges(tmplt, world, signal):
         if missing_edge > 0 :
             miss = miss + missing_edge
             miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = str(missing_edge)
+            try:
+                node_dict[world.nodes[src_is_cand]] += missing_edge
+            except:
+                node_dict[world.nodes[src_is_cand]] = missing_edge
+            
+            try:
+                node_dict[world.nodes[dst_is_cand]] += missing_edge
+            except:    
+                node_dict[world.nodes[dst_is_cand]] = missing_edge
+            
         else :
             miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = ""
+            try:
+                node_dict[world.nodes[src_is_cand]] += 0
+            except:
+                node_dict[world.nodes[src_is_cand]] = 0
+            
+            try:
+                node_dict[world.nodes[dst_is_cand]] += 0
+            except:    
+                node_dict[world.nodes[dst_is_cand]] = 0
         
-        
+    for key, val in node_dict.items():
+        if val == 0:
+            node_dict[key]= ""
+        else:
+            print("FOUND")
+            node_dict[key]= str(val)
     
 
     print ("Signal miss", miss, "edges")
-    return miss, miss_dict, correspond
+    return miss, miss_dict, node_dict, correspond
