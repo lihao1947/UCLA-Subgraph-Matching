@@ -24,6 +24,7 @@ def count_missing_edges(tmplt, world, signal):
 
 
         enough_edges = None
+        missing_edge = 0
         for tmplt_adj, world_adj in iter_adj_pairs(tmplt, world):
             tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
 
@@ -33,20 +34,20 @@ def count_missing_edges(tmplt, world, signal):
 
             world_adj_val = world_adj[src_is_cand, dst_is_cand]
 
-            missing_edge = np.int8(world_adj_val) - tmplt_adj_val
+            missing_edge += np.int8(world_adj_val) - tmplt_adj_val
 
-            if missing_edge >= 0 :
-                miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = ''
-            else:
-                miss = miss - missing_edge
+        if missing_edge >= 0 :
+            miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = ''
+        else:
+            miss = miss - missing_edge
 
-                node_miss[src_idx]-=missing_edge
-                node_miss[dst_idx]-=missing_edge
+            node_miss[src_idx]-=missing_edge
+            node_miss[dst_idx]-=missing_edge
 
-                miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = str(missing_edge)
+            miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])] = str(missing_edge)
 
 
 
-    miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])]= "6"
+    #miss_dict[(world.nodes[src_is_cand],world.nodes[dst_is_cand])]= "6"
     print ("Signal miss", miss, "edges")
     return miss, miss_dict, node_miss

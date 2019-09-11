@@ -39,7 +39,7 @@ class State():
         r.candidates_0 = self.candidates_0.copy()
         r.candidates_1 = self.candidates_1.copy()
         r.f = self.f
-        r.undetermined_loss = self.undetermined_loss
+        r.undetermined_loss = self.undetermined_loss.copy()
         r.already_missing = self.already_missing
 
         return r
