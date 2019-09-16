@@ -9,6 +9,7 @@ import pickle
 from .. import INF1
 import os.path
 from os import path
+import time
 
 # TODO: count how many isomorphisms each background node participates in.
 # TODO: switch from recursive to iterative implementation for readability
@@ -88,9 +89,12 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
     # Loop until you find the end
     iter = 0
     while len(open_list) > 0:
+        print(time.time()-tmplt.start_time)
+        if time.time()-tmplt.start_time>=3600:
+            return solution
         iter += 1
-        if iter % 50 ==0:
-            pickle.dump(open_list, open("cache1.pl", "wb"))
+        # if iter % 50 ==0:
+        #     pickle.dump(open_list, open("cache1.pl", "wb"))
         # Get the current node
         # Pop current off open list, add to closed list
         current_state = open_list[0]
@@ -99,6 +103,8 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
         # Found the goal
         if current_state.is_end():
+            current_state.candidates_0 = None
+            current_state.candidates_1 = None
             solution.append(current_state)
             heappop(open_list)
             if len(solution)>=num_isomorphism:
@@ -211,6 +217,8 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 
         if not new_state_flag:
             heappop(open_list)
+
+    return solution
 # def A_star_best_matching(tmplt, world, candidates_0, candidates_1,
 #                                   unspec_cover, verbose):
 #     # If the node cover is empty, the unspec nodes are disconnected. Thus, we
@@ -249,7 +257,7 @@ def A_star_best_matching(tmplt, world, candidates_0, candidates_1, num_isomorphi
 #     return n_isomorphisms
 
 
-def best_matching(tmplt, world, *, candidates=None, verbose=True, f_upper_bound=0, cache=None):
+def best_matching(tmplt, world, *, candidates=None, verbose=True, f_upper_bound=0, cache=None, num_isomorphism=1):
     """
     counts the number of ways to assign template nodes to world nodes such that
     edges between template nodes also appear between the corresponding world
@@ -263,10 +271,10 @@ def best_matching(tmplt, world, *, candidates=None, verbose=True, f_upper_bound=
     # if candidates is None:
     #     tmplt, world, candidates = uclasm.run_noisy_filters(
     #         tmplt, world, noisy_filters=uclasm.all_noisy_filters, verbose=True)
-    cache = cache + str(f_upper_bound) + '.pl'
     if cache==None:
         tmplt, world, candidates_0, candidates_1 = uclasm.run_noisy_filters(tmplt, world, f_upper_bound=f_upper_bound)
     else:
+        cache = cache + str(f_upper_bound) + '.pl'
         if path.exists(cache):
             candidates_0, candidates_1 = pickle.load(open(cache,'rb'))[2:4]
         else:
@@ -280,4 +288,4 @@ def best_matching(tmplt, world, *, candidates=None, verbose=True, f_upper_bound=
 
     # Send zeros to init_changed_cands since we already just ran the noisy_filters
     return A_star_best_matching(
-        tmplt, world, candidates_0, candidates_1, f_upper_bound=f_upper_bound)
+        tmplt, world, candidates_0, candidates_1, f_upper_bound=f_upper_bound, num_isomorphism=num_isomorphism)

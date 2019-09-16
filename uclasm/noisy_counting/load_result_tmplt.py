@@ -15,17 +15,16 @@ from plotting.plot_noise import plot_lost_edge
 tmplts, world = data.pnnl_v6(0)
 tmplt = tmplts[0]
 
-# tmplt = pickle.load(open("noisy_tmplt_6.pl","rb"))
-world1 = pickle.load(open("noisy_world_0.001.pl","rb"))
-world2 = pickle.load(open("noisy_world_0.002.pl","rb"))
+tmplt1 = pickle.load(open("noisy_tmplt_2.pl","rb"))
+tmplt2 = pickle.load(open("noisy_tmplt_3.pl","rb"))
 
 isomo = pickle.load(open("0.002percent_missing.pl","rb"))
 
 
 
 signal = isomo[0].state
-miss1, miss_dict1, node_dict1, correspond1 = uclasm.count_missing_edges(tmplt, world1, signal)
-miss2, miss_dict2, node_dict2, correspond2 = uclasm.count_missing_edges(tmplt, world2, signal)
+miss1, miss_dict1, node_dict1, correspond1 = uclasm.count_missing_edges(tmplt1, world, signal)
+miss2, miss_dict2, node_dict2, correspond2 = uclasm.count_missing_edges(tmplt2, world, signal)
 
 convert = {}
 count = 0
@@ -58,5 +57,5 @@ print(isomo[0].loss)
 
 # import IPython
 # IPython.embed()
-plot_lost_edge(tmplt, miss_dict1, node_dict1, "world_noise_0_001", record=record.copy(), me=me1)
-plot_lost_edge(tmplt, miss_dict2, node_dict2, "world_noise_0_002", record=record.copy(), me=me2)
+plot_lost_edge(tmplt1, miss_dict1, node_dict1, "tmplt_noise_2", record=record, me=me1)
+plot_lost_edge(tmplt2, miss_dict2, node_dict2, "tmplt_noise_3", record=record, me=me2)
